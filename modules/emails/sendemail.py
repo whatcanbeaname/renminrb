@@ -1,9 +1,9 @@
+import smtplib  # SMTP:简单邮件传输协议
 from datetime import datetime
 from email.header import Header
 from email.mime.image import MIMEImage
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-import smtplib  # SMTP:简单邮件传输协议
 
 class MySendEmail:
     def __init__(self, mail_licence, sender, receiver, subject, content, has_attach=False,

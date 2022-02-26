@@ -1,10 +1,14 @@
+# -*- coding: utf-8 -*-
+
 import os
 import shutil
+from datetime import datetime
+from modules.emails.sendemail import MySendEmail
+from modules.periodical_tasks.periodical import start
 from modules.requestdata.request_data import request_from
 from modules.zippers.zipper import zip_file
-from modules.emails.sendemail import MySendEmail
-from datetime import datetime
-from modules.periodical_tasks.periodical import start
+from multiprocessing import Pool
+from typing import List, Dict
 
 DOWNLOAD_DIR_PATH = './download/'
 DOWNLOAD_ZIP_FILE = './download.zip'
@@ -13,31 +17,28 @@ CONFIG_FILE_PATH = './config'
 class Renminrb:
     def __init__(self, home_page_url, enable_zip=False, sendmail=False):
         self.home_url = home_page_url
-        self.column = ''
-        self.config = {}
+        self.config: Dict = {}
         self.enable_zip = enable_zip
         self.enable_mail = sendmail
         self.has_attach = False
 
     def download(self):
         time0 = datetime.now()
-        if not os.path.exists('./temp'):
-            os.mkdir('./temp')
         print('------ 开始下载人民日报评论版文章 ------')
-        sel = request_from(self.home_url, apparent_encoding=True)
+        sel = request_from(self.home_url, apparent_encoding=True) #从主页获取各栏目url和名称
         tag = sel.css('.t03').css('a').getall()
         for t1 in tag:  # <a href="http://opi...html" target="_blank">人民时评</a>
-            column = t1.split('>')[1].split('<')[0]
+            column = t1.split('>')[1].split('<')[0] #栏目名称
             if column != '':
-                column_url = t1.split('>')[0].split('"')[1]
+                column_url = t1.split('>')[0].split('"')[1] #栏目url
                 # download articles in category
                 print(f'开始下载 【{column}】 板块的评论文章...')
                 sel = request_from(column_url, apparent_encoding=True)
                 tag = sel.css('.t11 a:link').getall()
                 if not tag:
                     tag = sel.css('.t10l14bl').css('a').getall()
-                title_list = []
-                count = 2
+                title_list: List[str] = []
+                count: int = 2  # 有重名时以数字区分，从2开始标注
                 with open('./temp/' + column + '文章列表.txt', mode='a') as f:  # a表示将新内容写到文件末尾
                     for t in tag:
                         article_name = t.split('>')[1].split('<')[0]
@@ -67,14 +68,16 @@ class Renminrb:
         print("文章下载完毕！耗时: ", datetime.now() - time0)
 
     @staticmethod
-    def clearfiles():
+    def prepare_work():
         if os.path.exists(DOWNLOAD_DIR_PATH):
             shutil.rmtree(DOWNLOAD_DIR_PATH)  # 删除非空文件夹用shutil库才行
         if os.path.exists(DOWNLOAD_ZIP_FILE):
             os.remove(DOWNLOAD_ZIP_FILE)
+        if not os.path.exists('./temp'):
+            os.mkdir('./temp')
 
     @staticmethod
-    def download_path(column):
+    def download_path(column: str):
         if not os.path.exists(DOWNLOAD_DIR_PATH):
             os.mkdir(DOWNLOAD_DIR_PATH)
         if not os.path.exists(DOWNLOAD_DIR_PATH + column):
@@ -82,7 +85,7 @@ class Renminrb:
         return DOWNLOAD_DIR_PATH + column
 
     @staticmethod
-    def is_new_article(article_url, column):
+    def is_new_article(article_url: str, column: str):
         for url in open('./temp/' + column + '文章列表.txt', mode="r"):
             if article_url == url.strip():
                 return False
@@ -92,11 +95,11 @@ class Renminrb:
         with open(CONFIG_FILE_PATH, 'r', encoding='utf-8') as f:
             for line in f.readlines():
                 line = line.strip('\n')  # 使用readlines结尾会有个换行符
-                s0, s1 = line.split(':')[0], line.split(':')[1]
+                s0, s1 = line.split(':')
                 self.config[s0] = s1
 
     def __call__(self):
-        self.clearfiles()
+        self.prepare_work()
         self.download()
         if self.enable_zip:
             zip_file(DOWNLOAD_DIR_PATH[:-1])
@@ -114,8 +117,11 @@ class Renminrb:
             if self.enable_mail:
                 print('mail send enabled, but zip file not found, so skip mail sending!')
 
+
 def job():
-    renminrb = Renminrb('http://opinion.people.com.cn/GB/8213/353915/index.html', enable_zip=True, sendmail=True)
+    url = 'http://opinion.people.com.cn/GB/8213/353915/index.html'
+    renminrb = Renminrb(url, enable_zip=True, sendmail=True)
     renminrb()
 
 start(job)
+# job()

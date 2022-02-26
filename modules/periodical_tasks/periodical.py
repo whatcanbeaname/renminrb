@@ -13,6 +13,7 @@ def start(job):
     # sch.add_job(job, "interval", seconds=3)
     # Schedule job_function to be called every two hours
     # sch.add_job(job, 'interval', hours=2)
+    sch.add_job(job, 'interval', hours=24)
     # The same as before, but starts on 2010-10-10 at 9:30 and stops on 2014-06-15 at 11:00
     # sch.add_job(job, 'interval', hours=2, start_date='2021-07-10 09:30:00', end_date='2021-08-15 11:00:00')
     # Run the `job_function` every hour with an extra-delay picked randomly in a [-120,+120] seconds window.
@@ -26,7 +27,7 @@ def start(job):
     # Runs from Monday to Friday at 5:30 (am) until 2014-05-30 00:00:00
     # sch.add_job(job, 'cron', day_of_week='mon-fri', hour=5, minute=30, end_date='2014-05-30')
 
-    sch.add_job(job, 'cron', day_of_week='fri', hour=8, minute=30)
+    # sch.add_job(job, 'cron', day_of_week='fri', hour=8, minute=30)
     sch.start()
 
 '''
